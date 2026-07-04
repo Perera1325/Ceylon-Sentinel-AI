@@ -57,16 +57,31 @@ app = FastAPI(
 )
 
 # Middleware
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
+from starlette.responses import Response
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Restrict in production
+    allow_origins=["http://localhost:3002", "http://localhost:8000", "https://admin.ceylonsentinel.ai", "https://app.ceylonsentinel.ai"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 # Configure allowed hosts if strictly required
-# app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"]) # Configured via Ingress in k8s
 app.add_middleware(TimingAndLoggingMiddleware)
 
 # Exception Handlers
