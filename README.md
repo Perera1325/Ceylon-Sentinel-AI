@@ -21,6 +21,13 @@ The platform follows a modular, microservices-based architecture featuring:
 - Docker, Docker Compose, GitHub Actions
 - LangChain / LangGraph (Planned)
 
+## Core Features
+
+- **Day 01**: Microservices foundation, FastAPI backend, Next.js frontend, PostgreSQL, Docker Compose.
+- **Day 02**: Data Collectors (Weather, News, Finance), Vector Embeddings, Qdrant Vector Store, Semantic Search.
+- **Day 03**: Multi-Agent Architecture, LangGraph State Graphs, Tool Framework, `Coordinator -> Weather -> News -> Policy` execution.
+- **Day 04**: AI Decision Engine, Dashboard Integration, Chat API (SSE Streaming), Live Workflow State.
+
 ## Folder Structure
 - `backend/`: FastAPI application and API routes.
 - `frontend/`: Next.js frontend application.

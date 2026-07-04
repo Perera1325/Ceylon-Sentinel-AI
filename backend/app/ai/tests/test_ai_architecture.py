@@ -1,6 +1,6 @@
 import pytest
-from ...ai.schemas.request import LLMRequest
-from ...ai.services.llm_service import LLMService
+from app.ai.schemas.request import LLMRequest
+from app.ai.services.llm_service import LLMService
 
 @pytest.mark.asyncio
 async def test_llm_service_initialization():

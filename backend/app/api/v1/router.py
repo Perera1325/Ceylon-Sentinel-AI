@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from .endpoints import collectors, finance, health, news, stats, weather, ai, rag, agents
+from .endpoints import collectors, finance, health, news, stats, weather, ai, rag, agents, chat
 
 api_router = APIRouter()
 
@@ -13,3 +13,4 @@ api_router.include_router(stats.router, prefix="/stats", tags=["Statistics"])
 api_router.include_router(ai.router, prefix="/ai", tags=["AI"])
 api_router.include_router(rag.router, prefix="/rag", tags=["RAG"])
 api_router.include_router(agents.router, prefix="/agents", tags=["Agents"])
+api_router.include_router(chat.router, prefix="/chat", tags=["Chat"])

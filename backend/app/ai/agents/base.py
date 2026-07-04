@@ -4,5 +4,5 @@ from ..state.workflow_state import WorkflowState
 
 class BaseAgent(ABC):
     @abstractmethod
-    def execute(self, state: WorkflowState) -> dict:
+    async def execute(self, state: WorkflowState) -> dict:
         pass

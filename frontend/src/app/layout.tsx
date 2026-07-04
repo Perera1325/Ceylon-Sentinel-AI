@@ -27,7 +27,19 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col bg-gray-900 text-white">
+        <nav className="bg-gray-800 border-b border-gray-700 p-4">
+          <div className="max-w-6xl mx-auto flex gap-6 font-semibold">
+            <a href="/dashboard" className="hover:text-blue-400 transition-colors">Dashboard</a>
+            <a href="/chat" className="hover:text-blue-400 transition-colors">AI Chat</a>
+            <a href="/weather" className="hover:text-blue-400 transition-colors">Weather</a>
+            <a href="/news" className="hover:text-blue-400 transition-colors">News</a>
+          </div>
+        </nav>
+        <main className="flex-1">
+          {children}
+        </main>
+      </body>
     </html>
   );
 }
