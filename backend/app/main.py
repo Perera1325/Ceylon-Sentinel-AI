@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Depends
-from fastapi.middleware.cors import CORSMiddleware
 import logging
+
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 # Configure basic logging
 logging.basicConfig(level=logging.INFO)
@@ -21,17 +22,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting up Ceylon Sentinel AI Backend...")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     logger.info("Shutting down Ceylon Sentinel AI Backend...")
 
+
 @app.get("/health", tags=["System"])
 async def health_check():
     return {"status": "healthy", "service": "Ceylon Sentinel AI API"}
+
 
 # Include routers here in the future
 # app.include_router(some_router)
