@@ -36,9 +36,20 @@ class Settings(BaseSettings):
     COLLECTOR_RETRY_COUNT: int = 3
     COLLECTOR_POLLING_INTERVAL_SECONDS: int = 300
 
+    # Scheduler
+    NEWS_INTERVAL_MINUTES: int = 5
+    WEATHER_INTERVAL_MINUTES: int = 10
+    FINANCE_INTERVAL_MINUTES: int = 60
+
+    # API / Security
+    API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = "supersecretkey"  # Change in production
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
     class Config:
-        env_file = ".env"
+        env_file = "../.env"
         case_sensitive = True
+        extra = "ignore"
 
 
 settings = Settings()

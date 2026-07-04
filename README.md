@@ -43,5 +43,31 @@ See [ROADMAP.md](ROADMAP.md) for detailed planning.
 ### Local Development
 See the [CONTRIBUTING.md](CONTRIBUTING.md) guide for local setup instructions.
 
+## Project Architecture
+
+```mermaid
+graph TD
+    Client[Client] -->|HTTP/REST| API[FastAPI Backend]
+    API -->|Reads/Writes| DB[(PostgreSQL)]
+    API -->|Caches| Redis[(Redis)]
+    API -->|Embeddings| Qdrant[(Qdrant)]
+    Scheduler[APScheduler] -->|Triggers| Collectors[Data Collectors]
+    Collectors --> API
+    Prometheus[Prometheus] -->|Scrapes Metrics| API
+    Prometheus -->|Scrapes Metrics| DB
+    Grafana[Grafana] -->|Queries| Prometheus
+```
+
+## Documentation
+Please refer to our detailed documentation in the `docs/` folder:
+- [Developer Guide](docs/Developer_Guide.md)
+- [Deployment Guide](docs/Deployment_Guide.md)
+- [Docker Guide](docs/Docker_Guide.md)
+- [API Guide](docs/API_Guide.md)
+- [Collectors Guide](docs/Collectors_Guide.md)
+- [Monitoring Guide](docs/Monitoring_Guide.md)
+- [Architecture Decisions](docs/Architecture_Decisions.md)
+- [Coding Standards](docs/Coding_Standards.md)
+
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

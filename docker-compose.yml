@@ -9,18 +9,28 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - ENVIRONMENT=development
-      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ceylon_sentinel
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ceylon_sentinel
       - REDIS_URL=redis://redis:6379/0
       - QDRANT_URL=http://qdrant:6333
     volumes:
-      - ./backend:/app
+      - backend_logs:/app/logs
     depends_on:
-      - postgres
-      - redis
-      - qdrant
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      qdrant:
+        condition: service_started
     networks:
       - sentinel_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   frontend:
     build:
@@ -30,12 +40,20 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=development
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://backend:8000
     networks:
       - sentinel_network
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   postgres:
     image: postgres:15-alpine
@@ -50,6 +68,12 @@ services:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - sentinel_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ceylon_sentinel"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -60,6 +84,12 @@ services:
       - redis_data:/data
     networks:
       - sentinel_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   qdrant:
     image: qdrant/qdrant:latest
@@ -71,11 +101,59 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - sentinel_network
+    restart: unless-stopped
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ceylon_sentinel_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ceylonsentinel.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - sentinel_network
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: ceylon_sentinel_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - sentinel_network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: ceylon_sentinel_grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+    networks:
+      - sentinel_network
+    depends_on:
+      - prometheus
+    restart: unless-stopped
 
 volumes:
   postgres_data:
   redis_data:
   qdrant_data:
+  backend_logs:
+  pgadmin_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   sentinel_network:

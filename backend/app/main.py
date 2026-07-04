@@ -1,42 +1,90 @@
 import logging
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
+from sqlalchemy.exc import SQLAlchemyError
 
-# Configure basic logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+from app.api.v1.router import api_router
+from app.config.settings import settings
+from app.core.exceptions import (
+    not_found_exception_handler,
+    validation_exception_handler,
+    sqlalchemy_exception_handler,
+    global_exception_handler
+)
+from app.core.middleware import TimingAndLoggingMiddleware
+from prometheus_fastapi_instrumentator import Instrumentator
+from app.scheduler.manager import shutdown_scheduler, start_scheduler
+from pythonjsonlogger import jsonlogger
+
+# Configure structured logging
+logHandler = logging.StreamHandler()
+formatter = jsonlogger.JsonFormatter(
+    fmt="%(asctime)s %(levelname)s %(name)s %(message)s",
+    rename_fields={"levelname": "level", "asctime": "timestamp"}
+)
+logHandler.setFormatter(formatter)
+logger = logging.getLogger()
+logger.addHandler(logHandler)
+logger.setLevel(logging.INFO)
+# Remove default handlers to avoid duplicates
+for handler in logger.handlers[:-1]:
+    logger.removeHandler(handler)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting Ceylon Sentinel AI Backend...")
+    start_scheduler()
+    yield
+    # Shutdown
+    logger.info("Shutting down Ceylon Sentinel AI Backend...")
+    shutdown_scheduler()
+
 
 app = FastAPI(
     title="Ceylon Sentinel AI",
-    description="Backend API for Ceylon Sentinel AI Platform",
-    version="0.1.0",
+    description="Enterprise-grade AI Platform for Disaster Prediction & Public Safety in Sri Lanka.",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
-# CORS middleware
+# Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Restrict in production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(GZipMiddleware, minimum_size=1000)
+# Configure allowed hosts if strictly required
+# app.add_middleware(TrustedHostMiddleware, allowed_hosts=["localhost", "127.0.0.1"])
+app.add_middleware(TimingAndLoggingMiddleware)
 
+# Exception Handlers
+app.add_exception_handler(404, not_found_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(SQLAlchemyError, sqlalchemy_exception_handler)
+app.add_exception_handler(Exception, global_exception_handler)
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Starting up Ceylon Sentinel AI Backend...")
+# Include Routers
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
+# Instrument metrics
+Instrumentator().instrument(app).expose(app, endpoint="/api/v1/metrics")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("Shutting down Ceylon Sentinel AI Backend...")
-
-
-@app.get("/health", tags=["System"])
-async def health_check():
-    return {"status": "healthy", "service": "Ceylon Sentinel AI API"}
-
-
-# Include routers here in the future
-# app.include_router(some_router)
+@app.get("/")
+async def root():
+    return {
+        "message": "Welcome to Ceylon Sentinel AI API",
+        "docs": "/docs",
+        "health": "/api/v1/health",
+    }
