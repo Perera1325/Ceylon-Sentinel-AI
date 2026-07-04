@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ceylon_sentinel_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/ceylon_sentinel
+      - REDIS_URL=redis://redis:6379/0
+      - QDRANT_URL=http://qdrant:6333
+    volumes:
+      - ./backend:/app
+    depends_on:
+      - postgres
+      - redis
+      - qdrant
+    networks:
+      - sentinel_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ceylon_sentinel_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - sentinel_network
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: ceylon_sentinel_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ceylon_sentinel
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - sentinel_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: ceylon_sentinel_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - sentinel_network
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: ceylon_sentinel_qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - sentinel_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  qdrant_data:
+
+networks:
+  sentinel_network:
+    driver: bridge
